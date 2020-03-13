@@ -5,12 +5,22 @@ using std::cout;
 using std::endl;
 
 class Board {
+private:
+    void change_state(int i, int j, char tic) {
+        if (i >= 0 && i < size && j >= 0 && j < size) {
+            board_state[i][j] = tic;
+        }
+    };
 public:
     int size;
     char board_state[3][3]{};             //= {{' ', ' ', ' '}, {' ', 'X', ' '}, {' ', ' ', ' '}};
-    void change_state(int x, int y, char tic) {
-        board_state[x][y] = tic;
-    };
+    void set_X(int i, int j) {
+        change_state(i, j, 'X');
+    }
+
+    void set_O(int i, int j) {
+        change_state(i, j, 'O');
+    }
 
     void draw() {
         for (int l = 0; l < size; ++l) {
@@ -45,7 +55,7 @@ public:
 int main() {
     Board board(3);
     board.draw();
-    board.change_state(0, 2, 'X');
+    board.set_X(0, 2);
     board.draw();
     return 0;
 }
