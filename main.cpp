@@ -17,7 +17,7 @@ private:
     };
 public:
     int size;
-    char board_state[100][100]{};
+    char board_state[3][3]{};
 
     bool is_free(int row, int col){
         if (board_state[row][col] == ' ' && 0 < row < size && 0 < col < size)
@@ -39,7 +39,7 @@ public:
     }
 
     void draw() {
-        cout << "  ";
+        cout << "\n  ";
         for (int l = 0; l < size; ++l) {
             cout << "  " << l << " ";
         }
@@ -77,19 +77,24 @@ public:
 
 class Player{
 public:
-    virtual std::tuple<int, int> make_move(Board board)=0;
+    char (&board)[3][3];
+    char sign;
+    Player(char (&input_board)[3][3]):board(input_board){};
+    virtual std::tuple<int, int> make_move()=0;
 };
 
 
 class Human : public Player {
 public:
-    std::tuple<int, int> make_move(Board board) override{
+    Human(char (&input_board)[3][3]):Player(input_board){};
+    std::tuple<int, int> make_move() override{
         std::string row, col;
         cout << "enter coordinates of your mark(row and column): ";
         cin >> row >> col;
-        while (std::find_if(row.begin(), row.end(), [](unsigned char c) { return !std::isdigit(c); }) != row.end() ||
-               std::find_if(col.begin(), col.end(), [](unsigned char c) { return !std::isdigit(c); }) != col.end() ||
-               !board.is_free(std::stoi(row), std::stoi(col))){
+        while (board[std::stoi(row)][std::stoi(col)]  != ' ' || 0 > std::stoi(row) || std::stoi(row) > 3 || 0 > std::stoi(col) || std::stoi(col) > 3 ||
+               std::find_if(row.begin(), row.end(), [](unsigned char c) { return !std::isdigit(c); }) != row.end() ||
+               std::find_if(col.begin(), col.end(), [](unsigned char c) { return !std::isdigit(c); }) != col.end()
+               ){
             cout << "You cannot put mark in this cell. Enter coordinates of your mark(row and column): ";
             cin >> row >> col;
         };
@@ -98,15 +103,14 @@ public:
 };
 
 
-class MinMax {
+class MinMax : public Player {
 public:
-    char (&board)[3][3];
-    char computer;
     char player;
-    MinMax(char (&board1)[3][3], char comp_sign) : board(board1) {
-        computer = comp_sign;
+    MinMax(char (&input_board)[3][3], char comp_sign) : Player(input_board) {
+        sign = comp_sign;
         comp_sign == 'X' ? player = 'O': player = 'X';
     }
+
     bool isFreePlace() {
         for (auto & i : board)
             for (char j : i)
@@ -122,7 +126,7 @@ public:
             {
                 if (i[0]==player)
                     return +10;
-                else if (i[0]==computer)
+                else if (i[0]==sign)
                     return -10;
             }
         }
@@ -138,7 +142,7 @@ public:
                 if (board[0][i]==player)
                     return +10;
 
-                else if (board[0][i]==computer)
+                else if (board[0][i]==sign)
                     return -10;
             }
         }
@@ -150,7 +154,7 @@ public:
         {
             if (board[0][0]==player)
                 return +10;
-            else if (board[0][0]==computer)
+            else if (board[0][0]==sign)
                 return -10;
         }
 
@@ -158,7 +162,7 @@ public:
         {
             if (board[0][2]==player)
                 return +10;
-            else if (board[0][2]==computer)
+            else if (board[0][2]==sign)
                 return -10;
         }
 
@@ -202,7 +206,7 @@ public:
             for (auto & i : board) {
                 for (char & j : i) {
                     if (j==' ') {
-                        j = computer;
+                        j = sign;
                         best = std::min(best, minimax(depth+1, !isMax));
                         j = ' ';
                     }
@@ -212,7 +216,7 @@ public:
         }
     };
 
-    std::tuple<int, int> findBestMove()
+    std::tuple<int, int> make_move()
     {
         int bestVal = -1000;
         int row = -1;
@@ -247,11 +251,12 @@ private:
     Player* player2;
     int size;
     int moves_cntr = 0;
+    char sign = 'X';
 
     void player1_make_move(){
         int row, col;
         cout << "Player 1, ";
-        std::tie(row, col) = player1->make_move(board);
+        std::tie(row, col) = player1->make_move();
         board.set_X(row, col);
         moves_cntr += 1;
     }
@@ -259,7 +264,7 @@ private:
     void player2_make_move(){
         int row, col;
         cout << "Player 2, ";
-        std::tie(row, col) = player2->make_move(board);
+        std::tie(row, col) = player2->make_move();
         board.set_O(row, col);
         moves_cntr += 1;
     }
@@ -331,8 +336,8 @@ public:
     Game(int s = 3): board(s), size(s){
 
         std::map<std::string, Player*> input_map;
-        input_map.insert(std::make_pair("h", new Human()));
-//        input_map.insert(std::make_pair("ai1", new MinMax()));
+        input_map.insert(std::make_pair("h", new Human(board.board_state)));
+        input_map.insert(std::make_pair("ai1", new MinMax(board.board_state, sign)));
 //        input_map.insert(std::make_pair("ai2", new AI()));
 
         std::string p1;
@@ -351,11 +356,11 @@ public:
         }
         player1 = input_map[p1];
         player2 = input_map[p2];
-
+        player2->sign = 'O';
     }
 
     void play(){
-    int res = this->is_game_over();
+    int res = 0;
         while (res == 0){
             board.draw();
             player1_make_move();
@@ -395,14 +400,14 @@ int main() {
 //    board.set_O(row, col);
 //    board.draw();
 //    Board board(3);
-//    board.set_X(0, 2);
-//    board.set_O(0, 0);
-//    board.set_X(1, 2);
+//    board.set_X(0, 0);
+//    board.set_O(0, 1);
+//    board.set_X(1, 1);
 ////    board.set_O(1, 0);
 //    board.draw();
-//    MinMax alg(board.board_state, 'O');
+//    MinMax alg(board.board_state, 'X');
 //    int row, col;
-//    std::tie(row, col) = alg.findBestMove();
+//    std::tie(row, col) = alg.make_move();
 //    board.set_O(row, col);
 //    board.draw();
 
