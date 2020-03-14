@@ -1,6 +1,7 @@
 #include <iostream>
 #include <map>
 #include <tuple>
+#include <algorithm>
 
 using std::cout;
 using std::cin;
@@ -28,7 +29,6 @@ public:
     char get(int row, int col){
         return board_state[row][col];
     }
-
 
     void set_X(int i, int j) {
         change_state(i, j, 'X');
@@ -87,7 +87,9 @@ public:
         std::string row, col;
         cout << "enter coordinates of your mark(row and column): ";
         cin >> row >> col;
-        while (!board.is_free(std::stoi(row), std::stoi(col))){
+        while (std::find_if(row.begin(), row.end(), [](unsigned char c) { return !std::isdigit(c); }) != row.end() ||
+               std::find_if(col.begin(), col.end(), [](unsigned char c) { return !std::isdigit(c); }) != col.end() ||
+               !board.is_free(std::stoi(row), std::stoi(col))){
             cout << "You cannot put mark in this cell. Enter coordinates of your mark(row and column): ";
             cin >> row >> col;
         };
@@ -330,15 +332,23 @@ public:
 
         std::map<std::string, Player*> input_map;
         input_map.insert(std::make_pair("h", new Human()));
-//        input_map.insert(std::make_pair("cr", new ComputerRandom()));
-//        input_map.insert(std::make_pair("cb", new MinMax()));
+//        input_map.insert(std::make_pair("ai1", new MinMax()));
+//        input_map.insert(std::make_pair("ai2", new AI()));
 
         std::string p1;
         std::string p2;
-        cout << "Choose first player [h/cr/cb]: ";
+        cout << "Choose first player [h/ai1/ai2]: ";
         cin >> p1;
-        cout << "Choose second player [h/cr/cb]: ";
+        while(input_map.find(p1) == input_map.end()){
+            cout << "Please, type proper player type. Choose first player [h/ai1/ai2]: ";
+            cin >> p1;
+        }
+        cout << "Choose second player [h/ai1/ai2]: ";
         cin >> p2;
+        while(input_map.find(p2) == input_map.end()){
+            cout << "Please, type proper player type. Choose second player [h/ai1/ai2]: ";
+            cin >> p2;
+        }
         player1 = input_map[p1];
         player2 = input_map[p2];
 
