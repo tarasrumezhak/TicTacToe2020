@@ -1,9 +1,11 @@
 #include <iostream>
+#include <map>
 #include <tuple>
 
-
 using std::cout;
+using std::cin;
 using std::endl;
+
 
 class Board {
 private:
@@ -14,7 +16,20 @@ private:
     };
 public:
     int size;
-    char board_state[3][3]{};
+    char board_state[100][100]{};
+
+    bool is_free(int row, int col){
+        if (board_state[row][col] == ' ' && 0 < row < size && 0 < col < size)
+            return true;
+        else
+            return false;
+    }
+
+    char get(int row, int col){
+        return board_state[row][col];
+    }
+
+
     void set_X(int i, int j) {
         change_state(i, j, 'X');
     }
@@ -24,17 +39,22 @@ public:
     }
 
     void draw() {
+        cout << "  ";
+        for (int l = 0; l < size; ++l) {
+            cout << "  " << l << " ";
+        }
+        cout << endl << "  ";
         for (int l = 0; l < size; ++l) {
             cout << "+---";
         }
         cout << '+' << endl;
         for (int i = 0; i < size; ++i) {
-            cout << "|";
+            cout << i << " |";
             for (int j = 0; j < size; ++j) {
 
                 cout << " " << board_state[i][j] << " |";
             }
-            cout << endl;
+            cout << endl << "  ";
             for (int k = 0; k < size; ++k) {
                 cout << "+---";
             }
@@ -52,6 +72,27 @@ public:
         }
     }
 
+};
+
+
+class Player{
+public:
+    virtual std::tuple<int, int> make_move(Board board)=0;
+};
+
+
+class Human : public Player {
+public:
+    std::tuple<int, int> make_move(Board board) override{
+        std::string row, col;
+        cout << "enter coordinates of your mark(row and column): ";
+        cin >> row >> col;
+        while (!board.is_free(std::stoi(row), std::stoi(col))){
+            cout << "You cannot put mark in this cell. Enter coordinates of your mark(row and column): ";
+            cin >> row >> col;
+        };
+        return std::make_tuple(std::stoi(row), std::stoi(col));
+    }
 };
 
 
@@ -196,6 +237,138 @@ public:
 };
 
 
+class Game {
+private:
+
+    Board board;
+    Player* player1;
+    Player* player2;
+    int size;
+    int moves_cntr = 0;
+
+    void player1_make_move(){
+        int row, col;
+        cout << "Player 1, ";
+        std::tie(row, col) = player1->make_move(board);
+        board.set_X(row, col);
+        moves_cntr += 1;
+    }
+
+    void player2_make_move(){
+        int row, col;
+        cout << "Player 2, ";
+        std::tie(row, col) = player2->make_move(board);
+        board.set_O(row, col);
+        moves_cntr += 1;
+    }
+
+    int is_game_over(){
+
+        if (moves_cntr >= (size + size - 1)) {
+            for (int i = 0; i < size; i++) {
+                char value = board.get(i, 0);
+                if (value == ' ')
+                    continue;
+                bool equal = true;
+                for (int j = 1; j < size; j++)
+                    if (board.get(i, j) != value) {
+                        equal = false;
+                        break;
+                    }
+
+                if (equal)
+                    if (board.get(i, 0) == 'X')
+                        return 1;
+                    else
+                        return 2;
+            }
+
+            for (int i = 0; i < size; i++) {
+                char value = board.get(0, i);
+                if (value == ' ')
+                    continue;
+                bool equal = true;
+                for (int j = 1; j < size; j++)
+                    if (board.get(j, i) != value) {
+                        equal = false;
+                        break;
+                    }
+
+                if (equal)
+                    if (board.get(0, i) == 'X')
+                        return 1;
+                    else
+                        return 2;
+            }
+
+            char value = board.get(0, 0);
+            if (value != ' ') {
+                bool equal = true;
+                for (int j = 1; j < size; j++)
+                    if (board.get(j, j) != value) {
+                        equal = false;
+                        break;
+                    }
+                if (equal)
+                    if (board.get(0, 0) == 'X')
+                        return 1;
+                    else
+                        return 2;
+
+            }
+        }
+
+        if (moves_cntr >= size * size){
+            return 3;
+        }
+        return 0;
+    }
+
+public:
+
+    Game(int s = 3): board(s), size(s){
+
+        std::map<std::string, Player*> input_map;
+        input_map.insert(std::make_pair("h", new Human()));
+//        input_map.insert(std::make_pair("cr", new ComputerRandom()));
+//        input_map.insert(std::make_pair("cb", new MinMax()));
+
+        std::string p1;
+        std::string p2;
+        cout << "Choose first player [h/cr/cb]: ";
+        cin >> p1;
+        cout << "Choose second player [h/cr/cb]: ";
+        cin >> p2;
+        player1 = input_map[p1];
+        player2 = input_map[p2];
+
+    }
+
+    void play(){
+    int res = this->is_game_over();
+        while (res == 0){
+            board.draw();
+            player1_make_move();
+            res = this->is_game_over();
+            if (res != 0)
+                break;
+            board.draw();
+            player2_make_move();
+            res = this->is_game_over();
+        }
+
+        board.draw();
+        if (res == 1){
+            cout << "Game over. Player 1 won." << endl;
+        } else if (res == 2){
+            cout << "Game over. Player 2 won." << endl;
+        } else {
+            cout << "Game over. Draw." << endl;
+        }
+
+    }
+};
+
 
 int main() {
 //    Board board(3);
@@ -211,16 +384,19 @@ int main() {
 //    std::tie(row, col) = alg.findBestMove();
 //    board.set_O(row, col);
 //    board.draw();
-    Board board(3);
-    board.set_X(0, 2);
-    board.set_O(0, 0);
-    board.set_X(1, 2);
-//    board.set_O(1, 0);
-    board.draw();
-    MinMax alg(board.board_state, 'O');
-    int row, col;
-    std::tie(row, col) = alg.findBestMove();
-    board.set_O(row, col);
-    board.draw();
+//    Board board(3);
+//    board.set_X(0, 2);
+//    board.set_O(0, 0);
+//    board.set_X(1, 2);
+////    board.set_O(1, 0);
+//    board.draw();
+//    MinMax alg(board.board_state, 'O');
+//    int row, col;
+//    std::tie(row, col) = alg.findBestMove();
+//    board.set_O(row, col);
+//    board.draw();
+
+    Game game;
+    game.play();
     return 0;
 }

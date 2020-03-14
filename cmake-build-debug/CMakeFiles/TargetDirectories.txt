@@ -1,3 +1,0 @@
-/home/taras/Documents/ACS/tictactoe/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/taras/Documents/ACS/tictactoe/cmake-build-debug/CMakeFiles/tictactoe.dir
-/home/taras/Documents/ACS/tictactoe/cmake-build-debug/CMakeFiles/edit_cache.dir
