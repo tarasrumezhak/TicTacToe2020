@@ -103,138 +103,91 @@ public:
 };
 
 
-class MinMax : public Player {
+class MiniMaxAI : public Player {
 public:
     char player;
-    MinMax(char (&input_board)[3][3], char comp_sign) : Player(input_board) {
-        sign = comp_sign;
-        comp_sign == 'X' ? player = 'O': player = 'X';
+    int board_1d[9]={0};
+    MiniMaxAI(char (&input_board)[3][3], char comp_sign) : Player(input_board) {
+        sign = 'X';
     }
-
-    bool isFreePlace() {
-        for (auto & i : board)
-            for (char j : i)
-                if (j==' ')
-                    return true;
-        return false;
-    };
-
-    int rowCheck() {
-        for (auto & i : board) {
-            if (i[0]==i[1] &&
-                i[1]==i[2])
-            {
-                if (i[0]==player)
-                    return +10;
-                else if (i[0]==sign)
-                    return -10;
-            }
+    
+    int win() {
+        unsigned wins[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
+        int i;
+        for(i = 0; i < 8; ++i) {
+            if(board_1d[wins[i][0]] != 0 &&
+                board_1d[wins[i][0]] == board_1d[wins[i][1]] && board_1d[wins[i][1]] == board_1d[wins[i][2]])
+                return board_1d[wins[i][2]];
         }
-        return 0;
-    };
-
-    int colCheck() {
-        for (int i = 0; i<3; i++)
-        {
-            if (board[0][i]==board[1][i] &&
-                board[1][i]==board[2][i])
-            {
-                if (board[0][i]==player)
-                    return +10;
-
-                else if (board[0][i]==sign)
-                    return -10;
-            }
-        }
-        return 0;
-    };
-
-    int diagCheck() {
-        if (board[0][0]==board[1][1] && board[1][1]==board[2][2])
-        {
-            if (board[0][0]==player)
-                return +10;
-            else if (board[0][0]==sign)
-                return -10;
-        }
-
-        if (board[0][2]==board[1][1] && board[1][1]==board[2][0])
-        {
-            if (board[0][2]==player)
-                return +10;
-            else if (board[0][2]==sign)
-                return -10;
-        }
-
         return 0;
     }
-
-    int evaluate() {
-        int res = rowCheck();
-        if (res == 0){
-            res = colCheck();
-            if (res == 0) {
-                res = diagCheck();
+    
+    int minimax(int p) {
+        int winner = win();
+        if(winner != 0)
+            return winner*p;
+        int move = -1;
+        int score = -2;
+        for(int i = 0; i < 9; i++) {
+            if(board_1d[i] == 0) {
+                board_1d[i] = p;
+                int thisScore = -minimax(p*-1);
+                if(thisScore > score) {
+                    score = thisScore;
+                    move = i;
+                }
+                board_1d[i] = 0;
             }
         }
-        return res;
-    };
-
-    int minimax(int depth, bool isMax) {
-        int score = evaluate();
-        if (score == 10)
-            return score;
-        if (score == -10)
-            return score;
-        if (!isFreePlace())
-            return 0;
-        if (isMax) {
-            int best = -1000;
-            for (auto & i : board) {
-                for (char & j : i) {
-                    if (j==' ') {
-                        j = player;
-                        best = std::max( best, minimax(depth+1, !isMax) );
-                        j = ' ';
-                    }
-                }
+        if(move == -1)
+         return 0;
+        return score;
+    }
+    
+    std::tuple<int, int> make_move() {
+        player = sign == 'X' ? 'O': 'X';
+        for (int i = 0; i < 3; i++){
+            for (int j = 0; j < 3; j++){
+                if (board[i][j] == sign)
+                    board_1d[i*3+j] = 1;
+                else if (board[i][j] == player)
+                    board_1d[i*3+j] = -1;
             }
-            return best;
         }
-        else {
-            int best = 1000;
-            for (auto & i : board) {
-                for (char & j : i) {
-                    if (j==' ') {
-                        j = sign;
-                        best = std::min(best, minimax(depth+1, !isMax));
-                        j = ' ';
-                    }
+        int move = -1;
+        int score = -2;
+        for(int i = 0; i < 9; ++i) {
+            if(board_1d[i] == 0) {
+                board_1d[i] = 1;
+                int tempScore = -minimax(-1);
+                board_1d[i] = 0;
+                if(tempScore > score) {
+                    score = tempScore;
+                    move = i;
                 }
             }
-            return best;
         }
-    };
+        return std::make_tuple((int)move/3, move%3);
+    }
+};
 
-    std::tuple<int, int> make_move()
-    {
-        int bestVal = -1000;
-        int row = -1;
-        int col = -1;
 
-        for (int i = 0; i<3; i++) {
-            for (int j = 0; j<3; j++) {
-                if (board[i][j]==' ') {
-                    board[i][j] = player;
-                    int moveVal = minimax(0, false);
-                    board[i][j] = ' ';
-                    if (moveVal > bestVal) {
-                        row = i;
-                        col = j;
-                        bestVal = moveVal;
-                    }
-                }
-            }
+class RandomAI : public Player {
+public:
+    char player;
+    RandomAI(char (&input_board)[3][3]) : Player(input_board) {
+        sign = 'X';
+        player = 'O';
+        srand(time(NULL));
+    }
+
+    std::tuple<int, int> make_move() override{
+        int row, col;
+        row = (rand() % 3);
+        col = (rand() % 3);
+        while (board[row][col] != ' '){
+            row = (rand() % 3);
+            col = (rand() % 3);
         }
 
         return std::make_tuple(row, col);
@@ -270,64 +223,21 @@ private:
     }
 
     int is_game_over(){
-
-        if (moves_cntr >= (size + size - 1)) {
-            for (int i = 0; i < size; i++) {
-                char value = board.get(i, 0);
-                if (value == ' ')
-                    continue;
-                bool equal = true;
-                for (int j = 1; j < size; j++)
-                    if (board.get(i, j) != value) {
-                        equal = false;
-                        break;
-                    }
-
-                if (equal)
-                    if (board.get(i, 0) == 'X')
-                        return 1;
-                    else
-                        return 2;
-            }
-
-            for (int i = 0; i < size; i++) {
-                char value = board.get(0, i);
-                if (value == ' ')
-                    continue;
-                bool equal = true;
-                for (int j = 1; j < size; j++)
-                    if (board.get(j, i) != value) {
-                        equal = false;
-                        break;
-                    }
-
-                if (equal)
-                    if (board.get(0, i) == 'X')
-                        return 1;
-                    else
-                        return 2;
-            }
-
-            char value = board.get(0, 0);
-            if (value != ' ') {
-                bool equal = true;
-                for (int j = 1; j < size; j++)
-                    if (board.get(j, j) != value) {
-                        equal = false;
-                        break;
-                    }
-                if (equal)
-                    if (board.get(0, 0) == 'X')
-                        return 1;
-                    else
-                        return 2;
-
+        unsigned wins[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
+        int i;
+        for(i = 0; i < 8; ++i) {
+            if(board.get((int)(wins[i][0]/3),wins[i][0]%3) != ' ' &&
+               board.get((int)(wins[i][0]/3),wins[i][0]%3) == board.get((int)(wins[i][1]/3),wins[i][1]%3) &&
+               board.get((int)(wins[i][1]/3),wins[i][1]%3) == board.get((int)(wins[i][2]/3),wins[i][2]%3)){
+                if (board.get((int)wins[i][0]/3,wins[i][0]%3) == 'X'){
+                    cout << board.get((int)(wins[i][0]/3),wins[i][0]%3) << " " << board.get((int)(wins[i][1]/3),wins[i][1]%3) << " " << board.get((int)(wins[i][2]/3),wins[i][2]%3);
+                    return 1;}
+                else if ((board.get((int)wins[i][0]/3,wins[i][0]%3) == '0'))
+                    return 2;
             }
         }
-
-        if (moves_cntr >= size * size){
+        if (moves_cntr >= size * size)
             return 3;
-        }
         return 0;
     }
 
@@ -337,26 +247,28 @@ public:
 
         std::map<std::string, Player*> input_map;
         input_map.insert(std::make_pair("h", new Human(board.board_state)));
-        input_map.insert(std::make_pair("ai1", new MinMax(board.board_state, sign)));
-//        input_map.insert(std::make_pair("ai2", new AI()));
+        input_map.insert(std::make_pair("cmm", new MiniMaxAI(board.board_state, sign)));
+        input_map.insert(std::make_pair("cr", new RandomAI(board.board_state)));
 
         std::string p1;
         std::string p2;
-        cout << "Choose first player [h/ai1/ai2]: ";
+        cout << "h - Human; cmm - computer using minimax algorithm; cr - computer using random;" << endl;
+        cout << "Choose first player [h/cmm/cr]: ";
         cin >> p1;
         while(input_map.find(p1) == input_map.end()){
-            cout << "Please, type proper player type. Choose first player [h/ai1/ai2]: ";
+            cout << "Please, type proper player type. Choose first player [h/cmm/cr]: ";
             cin >> p1;
         }
-        cout << "Choose second player [h/ai1/ai2]: ";
+        cout << "Choose second player [h/cmm/cr]: ";
         cin >> p2;
         while(input_map.find(p2) == input_map.end()){
-            cout << "Please, type proper player type. Choose second player [h/ai1/ai2]: ";
+            cout << "Please, type proper player type. Choose second player [h/cmm/cr]: ";
             cin >> p2;
         }
         player1 = input_map[p1];
         player2 = input_map[p2];
         player2->sign = 'O';
+
     }
 
     void play(){
@@ -386,30 +298,6 @@ public:
 
 
 int main() {
-//    Board board(3);
-//    board.set_X(0, 2);
-//    board.set_O(1, 1);
-//    board.set_X(1, 2);
-//    board.draw();
-//    MinMax alg(board.board_state, 'X');
-//    int row, col;
-//    std::tie(row, col) = alg.findBestMove();
-//    board.set_O(row, col);
-//    board.draw();
-//    std::tie(row, col) = alg.findBestMove();
-//    board.set_O(row, col);
-//    board.draw();
-//    Board board(3);
-//    board.set_X(0, 0);
-//    board.set_O(0, 1);
-//    board.set_X(1, 1);
-////    board.set_O(1, 0);
-//    board.draw();
-//    MinMax alg(board.board_state, 'X');
-//    int row, col;
-//    std::tie(row, col) = alg.make_move();
-//    board.set_O(row, col);
-//    board.draw();
 
     Game game;
     game.play();
